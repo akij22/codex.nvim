@@ -36,6 +36,14 @@ local function deep_merge(dst, src)
   return vim.tbl_deep_extend('force', dst, src or {})
 end
 
+local function source_path()
+  local src = debug.getinfo(1, 'S').source or ''
+  if src:sub(1, 1) == '@' then
+    return src:sub(2)
+  end
+  return src
+end
+
 function M.setup(user_config)
   config = deep_merge(config, user_config)
 
@@ -51,6 +59,9 @@ function M.setup(user_config)
   vim.api.nvim_create_user_command('CodexList', function() M.pick_session() end, { desc = 'List Codex sessions' })
   vim.api.nvim_create_user_command('CodexNext', function() M.next_session() end, { desc = 'Next Codex session' })
   vim.api.nvim_create_user_command('CodexPrev', function() M.prev_session() end, { desc = 'Prev Codex session' })
+  vim.api.nvim_create_user_command('CodexWhere', function()
+    print(source_path())
+  end, { desc = 'Print loaded codex.nvim source file path' })
   vim.api.nvim_create_user_command('CodexClose', function(opts)
     local id = tonumber(opts.args)
     if id == nil then id = state.current end
@@ -188,10 +199,6 @@ local function create_session_buf()
   end
 
   if config.keymaps.quit then
-    map('t', config.keymaps.quit, function()
-      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<C-\\><C-n>', true, false, true), 't', false)
-      require('codex').close()
-    end)
     map('n', config.keymaps.quit, function() require('codex').close() end)
   end
 
@@ -199,11 +206,14 @@ local function create_session_buf()
   map('t', '<Esc>', [[<C-\><C-n>]])
   map('t', '<C-w>', [[<C-\><C-n><C-w>]])
 
-  map({ 'n', 't' }, config.keymaps.next, function() require('codex').next_session() end)
-  map({ 'n', 't' }, config.keymaps.prev, function() require('codex').prev_session() end)
-  map({ 'n', 't' }, config.keymaps.new, function() require('codex').new_session() end)
-  map({ 'n', 't' }, config.keymaps.list, function() require('codex').pick_session() end)
-  map({ 'n', 't' }, config.keymaps.close_session, function()
+  -- Keep session controls in normal mode only.
+  -- Terminal-mode <leader> mappings can make prompt typing laggy when
+  -- <leader> is a printable key (commonly <Space>).
+  map('n', config.keymaps.next, function() require('codex').next_session() end)
+  map('n', config.keymaps.prev, function() require('codex').prev_session() end)
+  map('n', config.keymaps.new, function() require('codex').new_session() end)
+  map('n', config.keymaps.list, function() require('codex').pick_session() end)
+  map('n', config.keymaps.close_session, function()
     local id = state.current
     if id then require('codex').close_session(id) end
   end)
