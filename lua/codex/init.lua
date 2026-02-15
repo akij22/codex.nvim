@@ -109,7 +109,7 @@ function M.setup(user_config)
     if not ok or not wk then return end
     -- which-key v3+
     if wk.add then
-      pcall(wk.add, { { '<leader>a', group = 'Codex', mode = { 'n', 'v', 't' } } })
+      pcall(wk.add, { { '<leader>a', group = 'Codex', mode = { 'n', 'v' } } })
       return
     end
     -- which-key v2 fallback
